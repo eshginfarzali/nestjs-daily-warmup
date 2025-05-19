@@ -19,7 +19,7 @@ export class UsersService {
     return 'Update user successful!';
   }
   deleteUser(index: number) {
-    this.users.slice(index, 1);
+    this.users.splice(index, 1);
     return 'Delete user successful!';
   }
 }
