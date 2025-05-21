@@ -1,8 +1,10 @@
+import { UpdateUserDto } from './dto/update-user.input';
+import { CreateUserDto } from './dto/create-user.input';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class UsersService {
-  private users: string[] = [];
+  private users: CreateUserDto[] = [];
   getUsers() {
     return this.users;
   }
@@ -10,13 +12,13 @@ export class UsersService {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return this.users[index];
   }
-  createUser(username: string) {
-    this.users.push(username);
-    return 'Create user successful!';
+  createUser(createUserDto: CreateUserDto) {
+    this.users.push(createUserDto);
+    return `${createUserDto.username} ${createUserDto.email} Create user successful!`;
   }
-  updateUser(index: string, username: string) {
-    this.users[index] = username;
-    return 'Update user successful!';
+  updateUser(index: string, updateUserDto: UpdateUserDto) {
+    this.users[index] = updateUserDto;
+    return `${updateUserDto.username} ${updateUserDto.email} Update user successful!`;
   }
   deleteUser(index: number) {
     this.users.splice(index, 1);
