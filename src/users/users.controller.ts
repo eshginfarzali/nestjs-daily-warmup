@@ -3,42 +3,48 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
+  ParseUUIDPipe,
+  Patch,
   Post,
-  Put,
 } from '@nestjs/common';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { User } from './entities/user.entity';
 import { UsersService } from './users.service';
-import { CreateUserDto } from './dto/create-user.input';
-import { UpdateUserDto } from './dto/update-user.input';
 
 @Controller('users')
 export class UsersController {
-  //injectable decorative
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
-  findAll() {
-    return this.usersService.getUsers();
+  findAll(): User[] {
+    return this.usersService.findAll();
   }
 
-  @Get(':index')
-  findOne(@Param('index') index: string) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    return this.usersService.getUser(index);
+  @Get(':id')
+  findOne(@Param('id', ParseUUIDPipe) id: string): User {
+    return this.usersService.findOne(id);
   }
 
   @Post()
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.usersService.createUser(createUserDto);
+  create(@Body() dto: CreateUserDto): User {
+    return this.usersService.create(dto);
   }
 
-  @Put(':index')
-  update(@Param('index') index: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.updateUser(index, updateUserDto);
+  @Patch(':id')
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateUserDto,
+  ): User {
+    return this.usersService.update(id, dto);
   }
 
-  @Delete(':index')
-  delete(@Param('index') index: number) {
-    return this.usersService.deleteUser(index);
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  remove(@Param('id', ParseUUIDPipe) id: string): void {
+    this.usersService.remove(id);
   }
 }
