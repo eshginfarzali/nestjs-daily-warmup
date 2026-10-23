@@ -1,98 +1,98 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# NestJS Daily Warm-up
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+[![CI](https://github.com/eshginfarzali/nestjs-daily-warmup/actions/workflows/ci.yml/badge.svg)](https://github.com/eshginfarzali/nestjs-daily-warmup/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+![NestJS 11](https://img.shields.io/badge/NestJS-11-E0234E?logo=nestjs&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+A small NestJS REST API that I use as a warm-up for NestJS basics: modules, DTO validation, error mapping and testing. It is deliberately tiny. Data lives in memory, and there is no database or auth.
 
-## Description
+> Looking for a production-style NestJS service? See [nestjs-inventory-erp-api](https://github.com/eshginfarzali/nestjs-inventory-erp-api).
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Features
 
-## Project setup
+- `users` resource with full CRUD under the `/api/v1` prefix.
+- **Validation** with `class-validator` / `class-transformer` through a global `ValidationPipe`. Unknown fields are rejected, usernames are trimmed and emails lower-cased.
+- **Partial updates** with `PATCH`, using a DTO derived through `PartialType`.
+- **HTTP semantics:** `201` on create, `204` on delete, `404` for an unknown user, `409` for a duplicate email, `400` for a malformed UUID or an invalid body.
+- **Shared app setup** (`configureApp`) used by both `main.ts` and the e2e tests, so the tests run the same pipes and prefix as the real app.
 
-```bash
-$ npm install
-```
+## API
 
-## Compile and run the project
+| Method   | Path                | Body                       | Success |
+| -------- | ------------------- | -------------------------- | ------- |
+| `GET`    | `/api/v1/users`     |                            | `200`   |
+| `GET`    | `/api/v1/users/:id` |                            | `200`   |
+| `POST`   | `/api/v1/users`     | `{ "username", "email" }`  | `201`   |
+| `PATCH`  | `/api/v1/users/:id` | any of `username`, `email` | `200`   |
+| `DELETE` | `/api/v1/users/:id` |                            | `204`   |
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+curl -X POST localhost:3000/api/v1/users \
+  -H 'content-type: application/json' \
+  -d '{"username":"ann","email":"ann@example.com"}'
 ```
 
-## Run tests
+## Tech stack
+
+NestJS 11 · TypeScript (`strict`) · class-validator · Jest · Supertest · ESLint + Prettier · GitHub Actions
+
+## Architecture
+
+```mermaid
+flowchart LR
+  Client -->|HTTP /api/v1/users| Pipe[ValidationPipe<br/>whitelist + transform]
+  Pipe --> Controller[UsersController<br/>ParseUUIDPipe]
+  Controller --> Service[UsersService<br/>Map&lt;id, User&gt;]
+  Service -->|NotFound / Conflict| Filter[Nest exception layer]
+```
+
+```
+src/
+  app.setup.ts          global prefix + ValidationPipe (shared with e2e tests)
+  users/
+    dto/                CreateUserDto, UpdateUserDto (PartialType)
+    entities/           User
+    users.controller.ts
+    users.service.ts    in-memory store
+test/users.e2e-spec.ts  HTTP tests against the real Nest app
+```
+
+## Getting started
+
+Requires Node.js 20+.
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm install
+cp .env.example .env    # optional: PORT (default 3000)
+npm run start:dev
 ```
 
-## Deployment
+## Scripts
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+| Script                 | Description           |
+| ---------------------- | --------------------- |
+| `npm run start:dev`    | Watch mode            |
+| `npm run build`        | Compile to `dist/`    |
+| `npm run lint`         | ESLint, zero warnings |
+| `npm run format:check` | Prettier check        |
+| `npm run typecheck`    | `tsc --noEmit`        |
+| `npm test`             | Unit tests            |
+| `npm run test:e2e`     | HTTP end-to-end tests |
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## Testing
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
+- `src/users/users.service.spec.ts`: create, duplicate email, partial update, email ownership on update, remove, and `404` for every lookup.
+- `test/users.e2e-spec.ts`: the full CRUD flow over HTTP, plus validation errors, `409` and `400` for a malformed id.
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+CI runs lint → format → typecheck → unit → e2e → build on every push and pull request.
 
-## Resources
+## Roadmap
 
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+- [ ] Swap the in-memory map for a repository backed by PostgreSQL
+- [ ] OpenAPI docs with `@nestjs/swagger`
+- [ ] Pagination and filtering on `GET /users`
 
 ## License
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+[MIT](LICENSE) © Eshgin Farzaliyev
